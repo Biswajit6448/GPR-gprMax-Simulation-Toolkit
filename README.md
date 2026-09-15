@@ -15,6 +15,7 @@ The toolkit is being developed to support:
 - Generation and management of gprMax simulations
 - Processing of gprMax `.out` files
 - B-scan generation and visualization
+- Batch B-scan processing
 - Background-response subtraction
 - GPR signal and image preprocessing
 - Dataset organization and validation
@@ -53,6 +54,10 @@ GPR-gprMax-Simulation-Toolkit/
 │
 ├── preprocessing/
 │   └── background_subtraction.py
+│
+├── visualization/
+│   ├── generate_bscan.py
+│   └── batch_generate_bscans.py
 │
 ├── examples/
 │   └── background_subtraction/
@@ -95,13 +100,15 @@ gprMax should be installed separately according to the official gprMax installat
 
 This toolkit is intended to complement a working gprMax environment rather than replace the gprMax installation itself.
 
+> **Important:** Utilities that call `tools.plot_Bscan` should be executed from a Python environment in which gprMax and its tools are available.
+
 ---
 
 ## ▶️ Usage
 
 ### Background Subtraction
 
-The currently available preprocessing utility performs background subtraction between two compatible gprMax simulations:
+The preprocessing utility performs background subtraction between two compatible gprMax simulations:
 
 1. **Target + Background simulation**
 2. **Background-only simulation**
@@ -134,13 +141,15 @@ where:
 python preprocessing/background_subtraction.py target.out background.out result.out
 ```
 
-The script checks the receiver structures and data dimensions before performing the subtraction.
+The utility checks compatible receiver structures and data dimensions before performing subtraction.
 
 ---
 
-## 📈 Generate a B-scan
+## 📈 B-scan Generation
 
-After background subtraction, the resulting gprMax `.out` file can be visualized using the gprMax B-scan plotting utility.
+### Single B-scan Generation
+
+A gprMax `.out` file can be visualized using the official gprMax B-scan plotting utility.
 
 For example:
 
@@ -149,6 +158,61 @@ python -m tools.plot_Bscan result.out Ez
 ```
 
 Here, `Ez` represents the electric-field component used for B-scan visualization.
+
+The repository also contains:
+
+```text
+visualization/generate_bscan.py
+```
+
+for supporting standardized B-scan generation workflows.
+
+### Batch B-scan Generation
+
+For datasets containing multiple gprMax `.out` files, the toolkit provides a batch-processing utility:
+
+```text
+visualization/batch_generate_bscans.py
+```
+
+The utility recursively searches a specified directory and its subdirectories for `.out` files and invokes the official gprMax `tools.plot_Bscan` utility for each detected file.
+
+Run:
+
+```bash
+python visualization/batch_generate_bscans.py "PATH_TO_DATASET_FOLDER" Ez
+```
+
+For example:
+
+```bash
+python visualization/batch_generate_bscans.py "H:\GPR_DATASET" Ez
+```
+
+The utility:
+
+- Recursively searches directories for `.out` files
+- Processes each detected gprMax output file
+- Uses the official gprMax `tools.plot_Bscan` utility
+- Supports selection of the electromagnetic field component
+- Reports successful and failed processing attempts
+- Provides a final batch-processing summary
+
+Example terminal summary:
+
+```text
+Total files : 400
+Successful  : 400
+Failed      : 0
+```
+
+The default field component is `Ez`, so the component argument can be omitted:
+
+```bash
+python visualization/batch_generate_bscans.py "PATH_TO_DATASET_FOLDER"
+```
+
+> **Note:** gprMax and its `tools.plot_Bscan` module must be available in the active Python environment.
 
 ---
 
@@ -266,6 +330,7 @@ The project primarily uses:
 - **h5py**
 - **Matplotlib**
 - **OpenCV**
+- **Pillow**
 - **CUDA / GPU computing**
 
 ---
@@ -274,17 +339,20 @@ The project primarily uses:
 
 **Under active development**
 
-Currently available:
+### Currently Available
 
 - ✅ gprMax `.out` background subtraction
 - ✅ Receiver/component compatibility checking
+- ✅ Single B-scan visualization using gprMax
+- ✅ Recursive batch detection of `.out` files
+- ✅ Automated batch B-scan generation
+- ✅ Success/failure reporting during batch processing
 - ✅ Example background-subtraction B-scans
-- ✅ Basic installation and usage documentation
+- ✅ Installation and usage documentation
 
-Planned additions include:
+### Planned Additions
 
-- ⏳ Automated B-scan processing
-- ⏳ B-scan image resizing and normalization
+- ⏳ B-scan image normalization utilities
 - ⏳ Dataset organization utilities
 - ⏳ Dataset integrity checking
 - ⏳ Automated gprMax simulation workflows

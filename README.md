@@ -1,6 +1,6 @@
 # 📡 GPR-gprMax Simulation Toolkit
 
-A Python-based toolkit for **Ground-Penetrating Radar (GPR) simulation, B-scan processing, visualization, background subtraction, dataset validation, and dataset preparation using gprMax**.
+A Python-based toolkit for **Ground-Penetrating Radar (GPR) simulation, B-scan processing, visualization, background subtraction, normalization, dataset validation, and dataset preparation using gprMax**.
 
 This repository provides reusable utilities and example workflows for researchers working with physics-based GPR simulations and machine/deep-learning applications.
 
@@ -18,6 +18,7 @@ The toolkit is being developed to support:
 - Batch B-scan processing
 - Background-response subtraction
 - GPR signal and image preprocessing
+- B-scan intensity normalization
 - Dataset integrity checking
 - Dataset organization and validation
 - Preparation of simulated GPR data for machine/deep-learning applications
@@ -39,7 +40,9 @@ gprMax Output (.out)
         ↓
 B-scan Generation
         ↓
-Signal / Image Preprocessing
+Background Subtraction / Preprocessing
+        ↓
+B-scan Normalization
         ↓
 Dataset Integrity Checking
         ↓
@@ -63,7 +66,8 @@ GPR-gprMax-Simulation-Toolkit/
 │   └── batch_generate_bscans.py
 │
 ├── dataset_tools/
-│   └── check_dataset.py
+│   ├── check_dataset.py
+│   └── normalize_bscans.py
 │
 ├── examples/
 │   └── background_subtraction/
@@ -110,9 +114,9 @@ This toolkit is intended to complement a working gprMax environment rather than 
 
 ---
 
-## ▶️ Usage
+# ▶️ Usage
 
-### Background Subtraction
+## 1. Background Subtraction
 
 The preprocessing utility performs background subtraction between two compatible gprMax simulations:
 
@@ -151,7 +155,7 @@ The utility checks compatible receiver structures and data dimensions before per
 
 ---
 
-## 📈 B-scan Generation
+## 2. B-scan Generation
 
 ### Single B-scan Generation
 
@@ -175,7 +179,7 @@ for supporting standardized B-scan generation workflows.
 
 ### Batch B-scan Generation
 
-For datasets containing multiple gprMax `.out` files, the toolkit provides a batch-processing utility:
+For datasets containing multiple gprMax `.out` files, the toolkit provides:
 
 ```text
 visualization/batch_generate_bscans.py
@@ -222,7 +226,98 @@ python visualization/batch_generate_bscans.py "PATH_TO_DATASET_FOLDER"
 
 ---
 
-## 🔍 Dataset Integrity Checking
+## 3. B-scan Normalization
+
+The toolkit provides:
+
+```text
+dataset_tools/normalize_bscans.py
+```
+
+for preparing grayscale GPR B-scan images for machine/deep-learning workflows.
+
+The utility:
+
+- Recursively searches for supported image files
+- Converts images to grayscale
+- Performs per-image min-max intensity normalization
+- Maps normalized values to the 8-bit range `0–255`
+- Optionally resizes images
+- Preserves the original directory structure
+- Saves processed images to a separate output directory
+- Does not overwrite the original dataset
+
+### Normalization
+
+For an image \(I\), min-max normalization is conceptually performed as:
+
+```text
+I_norm = (I - I_min) / (I_max - I_min)
+```
+
+The normalized values are then mapped to:
+
+```text
+0 – 255
+```
+
+for storage as 8-bit grayscale images.
+
+### Basic Usage
+
+```bash
+python dataset_tools/normalize_bscans.py "INPUT_DATASET" "OUTPUT_DATASET"
+```
+
+For example:
+
+```bash
+python dataset_tools/normalize_bscans.py "GPR_BSCANS" "GPR_BSCANS_NORMALIZED"
+```
+
+When no dimensions are specified, the original image dimensions are preserved.
+
+### Normalize and Resize
+
+To normalize images and standardize them to `64 × 256` pixels:
+
+```bash
+python dataset_tools/normalize_bscans.py "INPUT_DATASET" "OUTPUT_DATASET" --width 64 --height 256
+```
+
+Both `--width` and `--height` must be provided together.
+
+### Non-destructive Processing
+
+The input and output directories must be different.
+
+For example:
+
+```text
+Original Dataset
+       ↓
+normalize_bscans.py
+       ↓
+Separate Normalized Dataset
+```
+
+The utility is designed to protect the source dataset from accidental overwriting.
+
+### Important Research Consideration
+
+The current utility performs **per-image min-max normalization**.
+
+This improves intensity consistency within individual images and can be useful when preparing image-based inputs for machine/deep-learning models.
+
+However, independent normalization of each B-scan changes the absolute amplitude relationship between different B-scans.
+
+Therefore, researchers should select the normalization strategy according to the intended experiment.
+
+For applications where absolute or relative signal amplitude across different measurements is physically important, alternative strategies such as dataset-level normalization or normalization based on fixed physical amplitude limits may be more appropriate.
+
+---
+
+## 4. Dataset Integrity Checking
 
 The toolkit includes a read-only dataset validation utility:
 
@@ -284,12 +379,12 @@ python dataset_tools/check_dataset.py "PATH_TO_DATASET" --skip-missing
 ================================================================================
 FINAL REPORT
 ================================================================================
-Total image files          : 12
-Valid readable images      : 12
+Total image files          : 3
+Valid readable images      : 3
 Corrupted/unreadable       : 0
-Unexpected dimensions      : 8
+Unexpected dimensions      : 0
 Exact duplicate groups     : 0
-Duplicate filename groups  : 1
+Duplicate filename groups  : 0
 Missing numeric filenames  : 0
 ================================================================================
 ```
@@ -299,6 +394,34 @@ The dimension check is particularly useful for identifying images that do not ma
 The duplicate-filename check identifies files that share the same filename in different directories, while exact duplicate detection compares file content.
 
 > **Note:** A duplicate filename does not necessarily mean that two images contain identical data. Exact duplicate detection is performed separately using file hashes.
+
+---
+
+## 🔗 Example Processing Pipeline
+
+The available utilities can be combined into a simple GPR data-processing workflow:
+
+```text
+gprMax Simulation
+        ↓
+.out Files
+        ↓
+B-scan Generation
+        ↓
+Background Subtraction
+        ↓
+B-scan Images
+        ↓
+Normalization
+        ↓
+Dataset Integrity Checking
+        ↓
+Validated Dataset
+        ↓
+Machine / Deep Learning
+```
+
+Each processing stage can also be used independently depending on the research workflow.
 
 ---
 
@@ -433,6 +556,10 @@ The project primarily uses:
 - ✅ Recursive batch detection of `.out` files
 - ✅ Automated batch B-scan generation
 - ✅ Success/failure reporting during batch processing
+- ✅ Recursive B-scan image normalization
+- ✅ Per-image min-max normalization
+- ✅ Optional B-scan resizing
+- ✅ Non-destructive normalized dataset generation
 - ✅ Dataset image integrity checking
 - ✅ Image-dimension validation
 - ✅ Corrupted/unreadable image detection
@@ -444,8 +571,8 @@ The project primarily uses:
 
 ### Planned Additions
 
-- ⏳ B-scan image normalization utilities
 - ⏳ Dataset organization utilities
+- ⏳ Additional normalization strategies
 - ⏳ Automated gprMax simulation workflows
 - ⏳ Generic simulation examples
 - ⏳ Additional preprocessing utilities
@@ -466,6 +593,8 @@ Electromagnetic Modelling
     GPR Simulation
           ↓
    B-scan Processing
+          ↓
+Signal / Image Preprocessing
           ↓
 Dataset Validation
           ↓

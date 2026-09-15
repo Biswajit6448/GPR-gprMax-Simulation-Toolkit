@@ -1,0 +1,18 @@
+#title: Basic_GPR_Simulation_Example
+
+#domain: 1.000 0.100 0.500
+#dx_dy_dz: 0.002 0.002 0.002
+#time_window: 10e-9
+
+#material: 6 0.001 1 0 soil
+
+#box: 0 0 0 1.000 0.100 0.400 soil
+#box: 0 0 0.400 1.000 0.100 0.500 free_space
+
+#waveform: ricker 1 1e9 my_ricker
+
+#hertzian_dipole: z 0.100 0.050 0.420 my_ricker
+#rx: 0.140 0.050 0.420
+
+#src_steps: 0.010 0 0
+#rx_steps: 0.010 0 0

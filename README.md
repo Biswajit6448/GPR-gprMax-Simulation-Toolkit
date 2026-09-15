@@ -1,6 +1,6 @@
 # 📡 GPR-gprMax Simulation Toolkit
 
-A Python-based toolkit for **Ground-Penetrating Radar (GPR) simulation, B-scan processing, visualization, background subtraction, normalization, dataset validation, and dataset preparation using gprMax**.
+A Python-based toolkit for **Ground-Penetrating Radar (GPR) simulation, B-scan processing, visualization, background subtraction, normalization, dataset validation, organization, and dataset preparation using gprMax**.
 
 This repository provides reusable utilities and example workflows for researchers working with physics-based GPR simulations and machine/deep-learning applications.
 
@@ -20,7 +20,7 @@ The toolkit is being developed to support:
 - GPR signal and image preprocessing
 - B-scan intensity normalization
 - Dataset integrity checking
-- Dataset organization and validation
+- Dataset filtering and organization
 - Preparation of simulated GPR data for machine/deep-learning applications
 
 ---
@@ -43,6 +43,8 @@ B-scan Generation
 Background Subtraction / Preprocessing
         ↓
 B-scan Normalization
+        ↓
+Dataset Organization
         ↓
 Dataset Integrity Checking
         ↓
@@ -67,7 +69,8 @@ GPR-gprMax-Simulation-Toolkit/
 │
 ├── dataset_tools/
 │   ├── check_dataset.py
-│   └── normalize_bscans.py
+│   ├── normalize_bscans.py
+│   └── organize_dataset.py
 │
 ├── examples/
 │   └── background_subtraction/
@@ -249,7 +252,7 @@ The utility:
 
 ### Normalization
 
-For an image \(I\), min-max normalization is conceptually performed as:
+For an image `I`, min-max normalization is conceptually performed as:
 
 ```text
 I_norm = (I - I_min) / (I_max - I_min)
@@ -291,8 +294,6 @@ Both `--width` and `--height` must be provided together.
 
 The input and output directories must be different.
 
-For example:
-
 ```text
 Original Dataset
        ↓
@@ -317,7 +318,133 @@ For applications where absolute or relative signal amplitude across different me
 
 ---
 
-## 4. Dataset Integrity Checking
+## 4. Dataset Organization
+
+The toolkit provides:
+
+```text
+dataset_tools/organize_dataset.py
+```
+
+for extracting and organizing selected GPR B-scan images from larger or mixed image directories.
+
+The utility:
+
+- Recursively searches an input directory for supported image files
+- Can filter images according to required dimensions
+- Can preserve the original directory structure
+- Can create a flat output dataset
+- Handles duplicate filenames safely
+- Copies rather than moves source files
+- Preserves source-file metadata where possible
+- Reports copied, skipped, unreadable, and renamed files
+- Does not modify or delete the source dataset
+
+### Basic Usage
+
+```bash
+python dataset_tools/organize_dataset.py "INPUT_DATASET" "OUTPUT_DATASET"
+```
+
+Without additional options, supported images are copied while preserving their relative source directory structure.
+
+### Filter by B-scan Dimensions
+
+For datasets in which the required B-scans are standardized to `64 × 256` pixels:
+
+```bash
+python dataset_tools/organize_dataset.py "INPUT_DATASET" "OUTPUT_DATASET" --width 64 --height 256
+```
+
+Only images matching the specified dimensions are copied.
+
+Both `--width` and `--height` must be specified together.
+
+This can be useful when a simulation directory also contains larger plots, screenshots, geometry visualizations, or other images that should not be included in the ML/DL dataset.
+
+### Flat Dataset Organization
+
+To collect selected images directly into one output directory:
+
+```bash
+python dataset_tools/organize_dataset.py "INPUT_DATASET" "OUTPUT_DATASET" --width 64 --height 256 --flat
+```
+
+The workflow is:
+
+```text
+Mixed Simulation Directories
+          ↓
+Recursive Image Detection
+          ↓
+Dimension Filtering
+          ↓
+Select Required B-scans
+          ↓
+Flat Organized Dataset
+```
+
+### Preserve Directory Structure
+
+When `--flat` is not specified, the relative source directory structure is preserved in the output dataset.
+
+For example:
+
+```text
+Input/
+├── Case_1/
+│   └── scan_1.png
+└── Case_2/
+    └── scan_2.png
+```
+
+becomes:
+
+```text
+Output/
+├── Case_1/
+│   └── scan_1.png
+└── Case_2/
+    └── scan_2.png
+```
+
+### Duplicate Filename Handling
+
+When flat-output mode is used, images originating from different directories may have identical filenames.
+
+Instead of overwriting an existing image, the organizer generates a unique filename.
+
+Conceptually:
+
+```text
+1.png
+1_2.png
+1_3.png
+```
+
+This protects previously copied files from accidental replacement.
+
+> **Note:** Renaming duplicate filenames does not imply that the image contents are duplicates. Exact content duplication can be checked separately using `check_dataset.py`.
+
+### Non-destructive Operation
+
+The organizer copies selected images into a separate output directory.
+
+```text
+Source Dataset
+      ↓
+organize_dataset.py
+      ↓
+Organized Dataset
+```
+
+The source dataset is not modified or deleted.
+
+The utility also prevents the output directory from being the same as, or placed inside, the source directory.
+
+---
+
+## 5. Dataset Integrity Checking
 
 The toolkit includes a read-only dataset validation utility:
 
@@ -379,8 +506,8 @@ python dataset_tools/check_dataset.py "PATH_TO_DATASET" --skip-missing
 ================================================================================
 FINAL REPORT
 ================================================================================
-Total image files          : 3
-Valid readable images      : 3
+Total image files          : 4
+Valid readable images      : 4
 Corrupted/unreadable       : 0
 Unexpected dimensions      : 0
 Exact duplicate groups     : 0
@@ -395,11 +522,21 @@ The duplicate-filename check identifies files that share the same filename in di
 
 > **Note:** A duplicate filename does not necessarily mean that two images contain identical data. Exact duplicate detection is performed separately using file hashes.
 
+### Recommended Validation Workflow
+
+After organizing a dataset, the resulting directory can be checked immediately:
+
+```bash
+python dataset_tools/check_dataset.py "OUTPUT_DATASET" --width 64 --height 256
+```
+
+This provides an additional validation stage before the images are used for machine/deep-learning experiments.
+
 ---
 
 ## 🔗 Example Processing Pipeline
 
-The available utilities can be combined into a simple GPR data-processing workflow:
+The available utilities can be combined into a GPR data-processing workflow:
 
 ```text
 gprMax Simulation
@@ -413,6 +550,8 @@ Background Subtraction
 B-scan Images
         ↓
 Normalization
+        ↓
+Dataset Organization
         ↓
 Dataset Integrity Checking
         ↓
@@ -560,6 +699,12 @@ The project primarily uses:
 - ✅ Per-image min-max normalization
 - ✅ Optional B-scan resizing
 - ✅ Non-destructive normalized dataset generation
+- ✅ Recursive dataset image organization
+- ✅ Dimension-based B-scan filtering
+- ✅ Flat-output dataset creation
+- ✅ Directory-structure preservation
+- ✅ Safe duplicate-filename handling
+- ✅ Non-destructive dataset organization
 - ✅ Dataset image integrity checking
 - ✅ Image-dimension validation
 - ✅ Corrupted/unreadable image detection
@@ -571,7 +716,7 @@ The project primarily uses:
 
 ### Planned Additions
 
-- ⏳ Dataset organization utilities
+- ⏳ Train/validation/test dataset splitting
 - ⏳ Additional normalization strategies
 - ⏳ Automated gprMax simulation workflows
 - ⏳ Generic simulation examples
@@ -595,6 +740,8 @@ Electromagnetic Modelling
    B-scan Processing
           ↓
 Signal / Image Preprocessing
+          ↓
+Dataset Organization
           ↓
 Dataset Validation
           ↓

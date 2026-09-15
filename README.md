@@ -1,6 +1,6 @@
 # 📡 GPR-gprMax Simulation Toolkit
 
-A Python-based toolkit for **Ground-Penetrating Radar (GPR) simulation, B-scan processing, visualization, background subtraction, and dataset preparation using gprMax**.
+A Python-based toolkit for **Ground-Penetrating Radar (GPR) simulation, B-scan processing, visualization, background subtraction, dataset validation, and dataset preparation using gprMax**.
 
 This repository provides reusable utilities and example workflows for researchers working with physics-based GPR simulations and machine/deep-learning applications.
 
@@ -18,6 +18,7 @@ The toolkit is being developed to support:
 - Batch B-scan processing
 - Background-response subtraction
 - GPR signal and image preprocessing
+- Dataset integrity checking
 - Dataset organization and validation
 - Preparation of simulated GPR data for machine/deep-learning applications
 
@@ -40,6 +41,8 @@ B-scan Generation
         ↓
 Signal / Image Preprocessing
         ↓
+Dataset Integrity Checking
+        ↓
 Dataset Preparation
         ↓
 Machine / Deep Learning
@@ -58,6 +61,9 @@ GPR-gprMax-Simulation-Toolkit/
 ├── visualization/
 │   ├── generate_bscan.py
 │   └── batch_generate_bscans.py
+│
+├── dataset_tools/
+│   └── check_dataset.py
 │
 ├── examples/
 │   └── background_subtraction/
@@ -216,6 +222,86 @@ python visualization/batch_generate_bscans.py "PATH_TO_DATASET_FOLDER"
 
 ---
 
+## 🔍 Dataset Integrity Checking
+
+The toolkit includes a read-only dataset validation utility:
+
+```text
+dataset_tools/check_dataset.py
+```
+
+This utility recursively scans image datasets and checks for common problems that can affect GPR machine/deep-learning workflows.
+
+It can identify:
+
+- Total number of image files
+- Valid and readable images
+- Corrupted or unreadable images
+- Image dimensions
+- Images with unexpected dimensions
+- Exact duplicate images using SHA-256 hashes
+- Duplicate filenames across different directories
+- Missing numbers in numerically named image sequences
+
+The utility **does not modify, rename, resize, or delete any files**.
+
+### Basic Usage
+
+```bash
+python dataset_tools/check_dataset.py "PATH_TO_DATASET"
+```
+
+By default, the expected B-scan dimensions are:
+
+```text
+Width  = 64 pixels
+Height = 256 pixels
+```
+
+### Specify Different Expected Dimensions
+
+```bash
+python dataset_tools/check_dataset.py "PATH_TO_DATASET" --width 128 --height 256
+```
+
+### Skip Exact Duplicate Detection
+
+For very large datasets, hash-based duplicate checking can be skipped:
+
+```bash
+python dataset_tools/check_dataset.py "PATH_TO_DATASET" --skip-duplicates
+```
+
+### Skip Numeric Filename Checking
+
+```bash
+python dataset_tools/check_dataset.py "PATH_TO_DATASET" --skip-missing
+```
+
+### Example Final Report
+
+```text
+================================================================================
+FINAL REPORT
+================================================================================
+Total image files          : 12
+Valid readable images      : 12
+Corrupted/unreadable       : 0
+Unexpected dimensions      : 8
+Exact duplicate groups     : 0
+Duplicate filename groups  : 1
+Missing numeric filenames  : 0
+================================================================================
+```
+
+The dimension check is particularly useful for identifying images that do not match the standardized dimensions expected by a machine/deep-learning pipeline.
+
+The duplicate-filename check identifies files that share the same filename in different directories, while exact duplicate detection compares file content.
+
+> **Note:** A duplicate filename does not necessarily mean that two images contain identical data. Exact duplicate detection is performed separately using file hashes.
+
+---
+
 ## 🖼️ Example: GPR Background Subtraction
 
 The following example demonstrates background-response subtraction using simulated GPR B-scans.
@@ -347,6 +433,12 @@ The project primarily uses:
 - ✅ Recursive batch detection of `.out` files
 - ✅ Automated batch B-scan generation
 - ✅ Success/failure reporting during batch processing
+- ✅ Dataset image integrity checking
+- ✅ Image-dimension validation
+- ✅ Corrupted/unreadable image detection
+- ✅ Exact duplicate-image detection
+- ✅ Duplicate-filename detection
+- ✅ Numeric filename sequence checking
 - ✅ Example background-subtraction B-scans
 - ✅ Installation and usage documentation
 
@@ -354,7 +446,6 @@ The project primarily uses:
 
 - ⏳ B-scan image normalization utilities
 - ⏳ Dataset organization utilities
-- ⏳ Dataset integrity checking
 - ⏳ Automated gprMax simulation workflows
 - ⏳ Generic simulation examples
 - ⏳ Additional preprocessing utilities
@@ -375,6 +466,8 @@ Electromagnetic Modelling
     GPR Simulation
           ↓
    B-scan Processing
+          ↓
+Dataset Validation
           ↓
 Dataset Preparation
           ↓
